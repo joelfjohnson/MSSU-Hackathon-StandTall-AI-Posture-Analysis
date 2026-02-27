@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>StandTall - Real-Time Posture Tracking</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description"
+        content="Improve your posture with real-time tracking using AI. StandTall helps you maintain better posture and reduce strain.">
+
+    <!--Fonts from Google -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.5.0/css/all.min.css">
+
+    <!-- Links styles.css -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <!-- favicon (uses Google favicon service for now) -->
+    <link rel="icon" href="https://www.google.com/s2/favicons?domain=standtall.com" />
+</head>
+
+<body>
+    <!-- Particle Background -->
+    <div id="particles-js"></div>
+
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <i class="fas fa-spine"></i>
+                <span>StandTall</span>
+            </div>
+            <ul class="nav-menu">
+                <li><a href="#home">Home</a></li>
+                <li><a href="#features">Features</a></li>
+                <li><a href="#posture">Posture</a></li>
+                <li><a href="#about">About</a></li>
+                <li><a href="#contact">Contact</a></li>
+            </ul>
+            <div class="nav-toggle">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+        </div>
+    </nav>
+
+    <main class="app" role="main">
+        <!-- Hero Section -->
+        <section id="home" class="hero-section">
+            <div class="hero-content">
+                <h1 class="hero-title">Stand Tall, Live Better</h1>
+                <p class="hero-subtitle">Real-time posture tracking powered by AI to help you maintain perfect posture
+                    and reduce strain.</p>
+                <div class="hero-buttons">
+                    <button id="startBtn" class="btn-primary">Start Tracking</button>
+                    <a class="btn-secondary" href="#features">Learn More</a>
+                    <button id="fullscreenBtn" class="btn btn-glass" title="Fullscreen camera">Full Screen</button>
+                </div>
+            </div>
+            <div class="hero-visual">
+                <div class="floating-icon"><i class="fas fa-user-check"></i></div>
+                <div class="floating-icon delay-1"><i class="fas fa-brain"></i></div>
+                <div class="floating-icon delay-2"><i class="fas fa-chart-line"></i></div>
+            </div>
+        </section>
+
+        <!-- Session History -->
+        <section id="history" class="history-section">
+            <div class="card glass">
+                <div class="section-header">
+                    <h2>Session History</h2>
+                    <p>Your recent posture sessions are stored locally in this browser.</p>
+                </div>
+                <div class="history-content">
+                    <div class="history-list">
+                        <ul id="sessionList"></ul>
+                        <div style="margin-top:10px"><button id="clearHistory" class="btn">Clear History</button></div>
+                    </div>
+                    <div class="history-graph">
+                        <canvas id="historyChart" width="640" height="240"></canvas>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Features Section -->
+        <section id="features" class="features-section">
+            <div class="section-header">
+                <h2>Why Choose StandTall?</h2>
+                <p>Discover the features that make posture tracking effortless and effective.</p>
+            </div>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon"><i class="fas fa-camera"></i></div>
+                    <h3>Real-Time Analysis</h3>
+                    <p>Get instant feedback on your posture using advanced computer vision.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon"><i class="fas fa-sliders-h"></i></div>
+                    <h3>Customizable Settings</h3>
+                    <p>Adjust sensitivity and alert preferences to match your needs.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon"><i class="fas fa-bell"></i></div>
+                    <h3>Smart Alerts</h3>
+                    <p>Receive gentle notifications when your posture needs correction.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon"><i class="fas fa-mobile-alt"></i></div>
+                    <h3>Web-Based</h3>
+                    <p>No downloads required – works directly in your browser.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Main App Section -->
+        <section id="posture" class="app-section">
+            <div class="card glass">
+                <div class="app-header">
+                    <h2>Posture Tracker</h2>
+                    <p>Use your camera to analyze your posture in real-time.</p>
+                </div>
+
+                <!-- canvas for cam and area for status messages -->
+                <section class="viewer">
+                    <div id="cameraContainer">
+                        <div class="canvas-wrap">
+                            <!--the canvas for the cam... MediaPipe draws the pose skeleton here -->
+                            <canvas id="output" width="640" height="480"></canvas>
+                            <!-- fullscreen toggle next to the posture checker -->
+                            <button id="cameraFsBtn" class="btn btn-glass camera-fs-toggle"
+                                title="Toggle Full Screen">Full Screen</button>
+                            <!-- Exit visual fullscreen (in-page) - accessible and visible only when camera fullscreen active -->
+                            <button id="exitCameraFsBtn" class="btn camera-exit-btn hidden" title="Exit Fullscreen"
+                                aria-label="Exit fullscreen">Exit</button>
+                            <!-- status message for the user's posture, updated by script.js -->
+                            <div id="status">
+                                <i class="fa-solid fa-camera"></i> Click "Start Tracking" to begin
+                            </div>
+                        </div>
+                    </div>
+
+                    <!--
+              Sidebar for posture controls:
+              - Angle threshold: Controls posture sensitivity (lower = more sensitive)
+              - Frames until alert: Number of consecutive frames of bad posture before alerting (lower = faster alerts)
+            -->
+                    <aside class="sidebar glass">
+                        <div class="sidebar-header">
+                            <h3>Posture Controls</h3>
+                            <p>Adjust sensitivity and alert timing to fit your comfort.</p>
+                        </div>
+                        <!--Angle Threshold slider-->
+                        <div class="control-group">
+                            <label for="angleRange" class="slider-label">Angle threshold: <span
+                                    id="angleValue">18.3°</span></label>
+                            <input id="angleRange" type="range" min="5" max="45" step="0.1" value="18.3" class="slider">
+                            <div class="slider-help">Lower = more sensitive to slouching · Higher = more tolerant</div>
+                        </div>
+
+                        <!--Frames until alert slider-->
+                        <div class="control-group">
+                            <label for="framesRange" class="slider-label">Frames until alert: <span
+                                    id="framesValue">3</span></label>
+                            <input id="framesRange" type="range" min="1" max="100" step="1" value="3" class="slider">
+                            <div class="slider-help">Lower = faster alerts · Higher = fewer false positives</div>
+                        </div>
+                        <!-- side panel tips -->
+                        <div class="tip-box">
+                            <p>
+                                <i class="fa-solid fa-lightbulb"></i>
+                                Tip: Small adjustments can make a big difference. Find your ideal settings for best
+                                results!
+                            </p>
+                        </div>
+                        <!-- Calibrate and session stats -->
+                        <div class="control-group">
+                            <button id="calibrateBtn" class="btn btn-glass calibrate-btn" type="button"
+                                aria-label="Calibrate neutral posture">Calibrate Neutral</button>
+                            <div id="sessionStats" class="stats-box" aria-live="polite">
+                                <div>Session: <span id="sessionTime">00:00</span></div>
+                                <div>Good: <span id="goodPct">0%</span> • Bad: <span id="badPct">0%</span></div>
+                            </div>
+                        </div>
+                    </aside>
+                </section>
+            </div>
+        </section>
+
+        <!-- Profile / Session Section (client-side only) -->
+        <section id="profile" class="profile-section">
+            <div class="card glass">
+                <div class="profile-grid">
+                    <div class="profile-info">
+                        <h3>Your Profile</h3>
+                        <p id="profileGreeting">Not signed in</p>
+                        <div class="profile-controls">
+                            <input id="profileName" type="text" placeholder="Your name" aria-label="Your name">
+                            <input id="profileEmail" type="email" placeholder="Your email" aria-label="Your email">
+                            <button id="profileSave" class="btn-primary">Save Profile</button>
+                            <button id="profileSignOut" class="btn" aria-hidden="true">Sign Out</button>
+                        </div>
+                    </div>
+                    <div class="session-controls">
+                        <h3>Session</h3>
+                        <p>Start a tracked session to monitor and analyze your posture over time.</p>
+                        <div class="session-buttons">
+                            <button id="startSessionBtn" class="btn-primary">Start Session</button>
+                            <button id="endSessionBtn" class="btn" disabled>End Session</button>
+                        </div>
+                        <div class="session-note">Sessions are recorded locally in your browser for now.</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- About Section -->
+        <section id="about" class="about-section">
+            <div class="section-header">
+                <h2>About StandTall</h2>
+            </div>
+            <div class="about-content">
+                <div class="about-text">
+                    <p>We use lightweight machine learning models to analyze posture in real time. This gives accurate,
+                        responsive feedback so you can reduce strain and improve posture over time.</p>
+                    <h3>The Effects of Bad Posture</h3>
+                    <p>Slouching and poor posture can lead to back and neck pain, reduced energy, and long-term health
+                        issues. Over time, it may affect your breathing, mood, and even your confidence.</p>
+                    <p><strong>How our website helps:</strong> StandTall gives you instant feedback on your posture,
+                        helping you build healthy habits and reduce discomfort. With real-time tracking, you can improve
+                        your posture and feel better every day.</p>
+                </div>
+                <div class="about-visual">
+                    <div class="stat-card">
+                        <div class="stat-number">95%</div>
+                        <div class="stat-label">Accuracy Rate</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">24/7</div>
+                        <div class="stat-label">Real-Time Monitoring</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">Free</div>
+                        <div class="stat-label">No Subscription</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Contact Section -->
+        <section id="contact" class="contact-section">
+            <div class="section-header">
+                <h2>Get In Touch</h2>
+                <p>Have questions or feedback? We'd love to hear from you!</p>
+            </div>
+            <div class="contact-content">
+                <div class="contact-info">
+                    <div class="contact-item">
+                        <i class="fas fa-envelope"></i>
+                        <span>hello@standtall.com</span>
+                    </div>
+                    <div class="contact-item">
+                        <i class="fas fa-github"></i>
+                        <span>github.com/standtall</span>
+                    </div>
+                    <div class="contact-item">
+                        <i class="fas fa-users"></i>
+                        <span>Created by Yesh, Vishu, Joel</span>
+                    </div>
+                </div>
+                <div class="contact-form">
+                    <form id="contactForm">
+                        <input name="name" type="text" placeholder="Your Name" required>
+                        <input name="email" type="email" placeholder="Your Email" required>
+                        <textarea name="message" placeholder="Your Message" rows="4" required></textarea>
+                        <button id="contactSubmit" type="submit" class="btn-primary">Send Message</button>
+                        <div id="contactStatus" style="margin-top:10px;color:var(--accent);"></div>
+                    </form>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- invisible cam video element... script.js uses this to get the cam feed -->
+    <video id="video" playsinline class="hidden"></video>
+
+    <!-- sound to notify when bad posture... played when bad posture is detected -->
+    <!-- sound to notify when bad posture... played when bad posture is detected -->
+    <!-- debug: controls shown so you can manually test the sound; remove controls once audio works -->
+    <audio id="alertSound" controls src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg"></audio>
+
+    <!--
+    loads MediaPipe external libraries first for pose detection
+
+    Important ordering:
+    - camera_utils.js: easily connect a webcam stream
+    - drawing_utils.js: draws the pose landmarks on the canvas
+    - pose.js: The actual Pose model that detects human posture
+
+    loaded before script.js so that script.js can use these libraries
+  -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js"></script>
+
+    <!-- Particles.js for background effect -->
+    <script src="https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js"></script>
+
+    <!-- loading script.js -->
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+
+</html>
